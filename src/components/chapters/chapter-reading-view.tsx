@@ -14,10 +14,12 @@ import {
   Clock,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Home,
   MessageSquare,
   ArrowUp,
   Type,
+  Check,
   Edit,
   Lock,
   Unlock,
@@ -27,6 +29,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -74,7 +81,41 @@ const READING_SETTINGS_KEY = "chapter-reading-settings";
 const DEFAULT_SETTINGS = {
   fontSize: 20,
   maxWidth: 780,
+  fontFamily: "geist",
 };
+
+const READING_FONT_OPTIONS = [
+  {
+    value: "geist",
+    label: "Geist",
+    description: "Clean sans",
+    stack: "var(--font-geist-sans), ui-sans-serif, sans-serif",
+  },
+  {
+    value: "serif",
+    label: "Georgia",
+    description: "Traditional book serif",
+    stack: "Georgia, Cambria, \"Times New Roman\", serif",
+  },
+  {
+    value: "palatino",
+    label: "Palatino Linotype",
+    description: "Warm and spacious",
+    stack: "\"Palatino Linotype\", Palatino, \"Book Antiqua\", Georgia, serif",
+  },
+  {
+    value: "charter",
+    label: "Charter",
+    description: "Quiet and sturdy",
+    stack: "Charter, \"Bitstream Charter\", \"Iowan Old Style\", Georgia, serif",
+  },
+  {
+    value: "lexend",
+    label: "Lexend",
+    description: "Designed for readability",
+    stack: "var(--font-lexend), ui-sans-serif, sans-serif",
+  },
+] as const;
 
 // Utility functions for localStorage
 const getStoredSettings = () => {
@@ -122,6 +163,7 @@ export function ChapterReadingView({
   const [readingProgress, setReadingProgress] = useState(0);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [fontOptionsOpen, setFontOptionsOpen] = useState(false);
   const [chapterBookmark, setChapterBookmark] =
     useState<ChapterBookmark | null>(null);
   const [showResumeDialog, setShowResumeDialog] = useState(false);
@@ -132,7 +174,10 @@ export function ChapterReadingView({
   const autoSaveEnabledRef = useRef(false);
   const autoSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { fontSize, maxWidth } = settings;
+  const { fontSize, maxWidth, fontFamily } = settings;
+  const selectedFont =
+    READING_FONT_OPTIONS.find((font) => font.value === fontFamily) ??
+    READING_FONT_OPTIONS[0];
 
   const { execute: executeUpdateProgress } = useAsync();
 
@@ -505,7 +550,7 @@ export function ChapterReadingView({
                     <Type className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="mr-2 w-56 md:w-64">
+                <DropdownMenuContent align="end" className="mr-2 w-60 md:w-64">
                   <div className="space-y-3 p-3 md:space-y-4 md:p-4">
                     <div>
                       <label className="text-xs font-medium md:text-sm">
@@ -543,6 +588,67 @@ export function ChapterReadingView({
                         </Button>
                       </div>
                     </div>
+                    <Collapsible
+                      open={fontOptionsOpen}
+                      onOpenChange={setFontOptionsOpen}
+                      className="space-y-2"
+                    >
+                      <CollapsibleTrigger asChild>
+                        <button
+                          type="button"
+                          className="hover:bg-accent focus-visible:ring-ring flex h-9 w-full items-center gap-2 rounded-md px-2 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                        >
+                          <span
+                            className="text-muted-foreground w-7 text-center text-base leading-none"
+                            style={{ fontFamily: selectedFont.stack }}
+                          >
+                            Aa
+                          </span>
+                          <span className="flex-1 text-xs font-medium">
+                            {selectedFont.label}
+                          </span>
+                          <ChevronDown
+                            className={cn(
+                              "text-muted-foreground h-4 w-4 transition-transform",
+                              fontOptionsOpen && "rotate-180",
+                            )}
+                          />
+                        </button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="space-y-1">
+                        {READING_FONT_OPTIONS.map((font) => (
+                          <button
+                            key={font.value}
+                            type="button"
+                            onClick={() =>
+                              updateSettings({
+                                fontFamily: font.value,
+                              })
+                            }
+                            className={cn(
+                              "hover:bg-accent focus-visible:ring-ring flex h-9 w-full items-center gap-2 rounded-md px-2 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none",
+                              selectedFont.value === font.value &&
+                                "bg-primary/10 text-foreground",
+                            )}
+                            aria-pressed={selectedFont.value === font.value}
+                            title={font.description}
+                          >
+                            <span
+                              className="text-muted-foreground w-7 text-center text-base leading-none"
+                              style={{ fontFamily: font.stack }}
+                            >
+                              Aa
+                            </span>
+                            <span className="flex-1 text-xs font-medium">
+                              {font.label}
+                            </span>
+                            {selectedFont.value === font.value && (
+                              <Check className="text-primary h-3.5 w-3.5" />
+                            )}
+                          </button>
+                        ))}
+                      </CollapsibleContent>
+                    </Collapsible>
                     <div>
                       <label className="text-xs font-medium md:text-sm">
                         Max Width ({maxWidth}px)
@@ -684,6 +790,7 @@ export function ChapterReadingView({
                 className="prose prose-gray dark:prose-invert max-w-none text-pretty break-words"
                 style={{
                   fontSize: `${fontSize}px`,
+                  fontFamily: selectedFont.stack,
                   lineHeight: 1.95,
                   letterSpacing: "0.01em",
                 }}
